@@ -34,8 +34,13 @@ ParseResponse Parser::parse() {
         while (!line.empty() && line.starts_with(' '))
             line = line.substr(1);
 
+        // comments must be on their own lines
+        if (line.starts_with("//"))
+            continue;
+
         auto lines = splitString(line);
-        if (lines.empty()) continue;
+        if (lines.empty())
+            continue;
 
         if (lines[0] == "if") {
             std::string value1 = lines[1], op = lines[2], value2 = lines[3];
