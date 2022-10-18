@@ -27,6 +27,6 @@ private:
     static inline std::vector<std::string> strings;
     static inline std::vector<std::string> variables;
 
-    static std::string parseValue(const std::string& value);
+    static bool parseValue(std::string& value);
     static bool parseStringLiteral(std::string& literal);
 };

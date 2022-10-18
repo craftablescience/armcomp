@@ -1,5 +1,6 @@
 #include "parser.hpp"
 
+#include <algorithm>
 #include <cctype>
 
 #include "utilities.hpp"
@@ -30,7 +31,10 @@ ParseResponse Parser::parse() {
         if (lines[0] == "let") {
             if (lines.size() < 4 || lines[2] != "=" || std::find(variables.begin(), variables.end(), lines[1]) != variables.end())
                 return {false, "Invalid syntax for let call: \"" + line + '\"'};
-            this->code << "mov x" + std::to_string(variables.size() + ASM_REGISTER_OFFSET) + ", " + parseValue(lines[3]);
+            std::string value = lines[3];
+            if (!parseValue(value))
+                return {false, "Invalid syntax: \"" + line + '\"'};
+            this->code << "mov x" + std::to_string(variables.size() + ASM_REGISTER_OFFSET) + ", " + value;
             variables.push_back(lines[1]);
         } else if (lines[0] == "label") {
             if (lines.size() < 2)
@@ -61,32 +65,49 @@ ParseResponse Parser::parse() {
                 return {false, "Encountered invalid literal: " + literal};
             strings.push_back(literal + "\\n");
         } else if (lines[0] == "exit") {
-            if (lines.size() > 1)
-                this->code << "mov x0, " + parseValue(lines[1]);
+            if (lines.size() > 1) {
+                std::string value = lines[1];
+                if (!parseValue(value))
+                    return {false, "Invalid syntax: \"" + line + '\"'};
+                this->code << "mov x0, " + value;
+            }
             this->code << "mov x8, #93" << "svc 0";
             break;
         } else if (auto find = std::find(variables.begin(), variables.end(), lines[0]); find != variables.end()) {
             if (lines.size() == 3) {
                 std::string op;
                 if (lines[1] == "=") {
-                    op = "mov ";
+                    op = "mov";
                 } else if (lines[1] == "+=") {
-                    op = "add ";
+                    op = "add";
                 } else if (lines[1] == "-=") {
-                    op = "sub ";
+                    op = "sub";
+                } else if (lines[1] == "*=") {
+                    op = "mul";
                 } else {
                     return {false, "Invalid syntax: \"" + line + '\"'};
                 }
-                auto var = parseValue(lines[0]);
-                this->code << op + var + ", " + (!op.starts_with("mov") ? var + ", " : "") + parseValue(lines[2]);
+                std::string var = lines[0], value = lines[2];
+                if (!parseValue(var) || !parseValue(value))
+                    return {false, "Invalid syntax: \"" + line + '\"'};
+                this->code << op + ' ' + var + ", " + (!op.starts_with("mov") ? var + ", " : "") + value;
             } else if (lines.size() == 5 && lines[1] == "=") {
-                if (lines[3] == "+" || lines[3] == "-") {
-                    // todo: this can be extended to larger equations
-                    this->code << std::string{lines[3] == "+" ? "add" : "sub"} + " x9, " + parseValue(lines[2]) + ", " + parseValue(lines[4]);
-                    this->code << "mov " + parseValue(lines[0]) + ", x9";
+                std::string op;
+                if (lines[3] == "+") {
+                    op = "add";
+                } else if (lines[3] == "-") {
+                    op = "sub";
+                } else if (lines[3] == "*") {
+                    op = "mul";
                 } else {
                     return {false, "Invalid syntax: \"" + line + '\"'};
                 }
+                std::string var = lines[0], value1 = lines[2], value2 = lines[4];
+                if (!parseValue(var) || !parseValue(value1) || !parseValue(value2))
+                    return {false, "Invalid syntax: \"" + line + '\"'};
+                // todo: this can be extended to larger equations
+                this->code << op + " x9, " + value1 + ", " + value2;
+                this->code << "mov " + var + ", x9";
             } else {
                 return {false, "Invalid syntax: \"" + line + '\"'};
             }
@@ -119,23 +140,23 @@ std::string Parser::getDataBlock() {
     return out.getContents();
 }
 
-std::string Parser::parseValue(const std::string& value) {
+bool Parser::parseValue(std::string& value) {
     // todo: sloppily written
-    if (value.length() == 0) return value;
+    if (value.empty())
+        return false;
     if (std::isalpha(value[0])) {
         // variable
         if (auto find = std::find(variables.begin(), variables.end(), value); find != variables.end()) {
-            return "x" + std::to_string(std::distance(variables.begin(), find) + ASM_REGISTER_OFFSET);
-        } else {
-            // error idk
+            value = "x" + std::to_string(std::distance(variables.begin(), find) + ASM_REGISTER_OFFSET);
+            return true;
         }
-    } else if (std::isalnum(value[0])) {
-        // todo: do better checking
+        return false;
+    } else if (std::all_of(value.begin(), value.end(), std::isalnum)) {
         // number
-        return "#" + value;
+        value = "#" + value;
+        return true;
     }
-    // error
-    return value;
+    return false;
 }
 
 bool Parser::parseStringLiteral(std::string& literal) {
