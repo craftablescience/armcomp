@@ -5,6 +5,9 @@ A basic language that compiles to ARM assembly so I can write less assembly!
 Python 3.6 or greater must be installed to use this application.
 The code may rely on C++20 features, I haven't checked. You will need at least a C++17 capable compiler.
 
+## acknowledgements
+Without ARMSim there would have been no way to run the generated assembly program. To the people that worked on that, thank you ♥️
+
 ## sample code
 This example code:
 ```arm
