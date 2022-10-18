@@ -11,6 +11,12 @@ add_executable(${PROJECT_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/src/parser.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/utilities.hpp)
 
+# Copy Python scripts next to the executable
+add_custom_command(
+        TARGET ${PROJECT_NAME}
+        PRE_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/src/armsim ${CMAKE_BINARY_DIR})
+
 option(ARMTRANS_BUILD_TESTS "Build test program for ARMTrans" OFF)
 if(ARMTRANS_BUILD_TESTS)
     include(FetchContent)

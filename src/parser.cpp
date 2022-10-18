@@ -11,6 +11,10 @@ Parser::Parser(const std::string& filepath) {
     this->file.open(filepath, std::ios::in);
 }
 
+Parser::~Parser() {
+    this->file.close();
+}
+
 ParseResponse Parser::parse() {
     if (!this->file.is_open())
         return {false, "Could not open file!"};

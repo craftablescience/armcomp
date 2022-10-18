@@ -16,6 +16,7 @@ struct ParseResponse {
 class Parser {
 public:
     explicit Parser(const std::string& filepath);
+    ~Parser();
     [[nodiscard]] ParseResponse parse();
     [[nodiscard]] std::string getCodeBlock() const;
     [[nodiscard]] static std::string getDataBlock() ;
