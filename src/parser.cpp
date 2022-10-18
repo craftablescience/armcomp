@@ -2,10 +2,13 @@
 
 #include <algorithm>
 #include <cctype>
+#include <stack>
 
 #include "utilities.hpp"
 
-#define ASM_STRING_PREFIX "s"
+#define ASM_IF_LABEL_PREFIX "_i"
+#define ASM_WHILE_LABEL_PREFIX "_w"
+#define ASM_STRING_PREFIX "_s"
 #define ASM_REGISTER_OFFSET 10
 
 Parser::Parser(const std::string& filepath) {
@@ -23,12 +26,46 @@ ParseResponse Parser::parse() {
     this->code << ".text" << ".global _start" << "_start:";
     this->code.indent();
 
+    uint16_t hardcodedLabels = 0;
+    std::stack<std::string> endings;
+
     std::string line;
     while (std::getline(this->file, line)) {
+        while (!line.empty() && line.starts_with(' '))
+            line = line.substr(1);
+
         auto lines = splitString(line);
         if (lines.empty()) continue;
 
-        if (lines[0] == "let") {
+        if (lines[0] == "if") {
+            std::string value1 = lines[1], op = lines[2], value2 = lines[3];
+            if (lines.size() != 4 || !parseValue(value1) || !parseLogicalOperator(op) || !parseValue(value2))
+                return {false, "Invalid syntax for if call: \"" + line + '\"'};
+            std::string branch = op;
+            std::string label = "." ASM_IF_LABEL_PREFIX + std::to_string(hardcodedLabels++);
+            branch += ' ' + label;
+            this->code << "cmp " + value1 + ", " + value2 << branch;
+            endings.push(label + ':');
+        } else if (lines[0] == "while") {
+            std::string value1 = lines[1], op = lines[2], value2 = lines[3];
+            if (lines.size() != 4 || !parseValue(value1) || !parseLogicalOperator(op) || !parseValue(value2))
+                return {false, "Invalid syntax for while call: \"" + line + '\"'};
+            this->code.dedent();
+            this->code << "." ASM_WHILE_LABEL_PREFIX + std::to_string(hardcodedLabels++) + ':';
+            this->code.indent();
+            std::string branch = op;
+            std::string labelEnd = "." ASM_WHILE_LABEL_PREFIX + std::to_string(hardcodedLabels++);
+            branch += ' ' + labelEnd;
+            this->code << "cmp " + value1 + ", " + value2 << branch;
+            endings.push("b ." ASM_WHILE_LABEL_PREFIX + std::to_string(hardcodedLabels - 2) + '\n' + labelEnd + ':');
+        } else if (lines[0] == "end") {
+            if (endings.top().starts_with('.'))
+                this->code.dedent();
+            this->code << endings.top();
+            if (endings.top().starts_with('.'))
+                this->code.indent();
+            endings.pop();
+        } else if (lines[0] == "let") {
             if (lines.size() < 4 || lines[2] != "=" || std::find(variables.begin(), variables.end(), lines[1]) != variables.end())
                 return {false, "Invalid syntax for let call: \"" + line + '\"'};
             std::string value = lines[3];
@@ -138,6 +175,27 @@ std::string Parser::getDataBlock() {
         strNum++;
     }
     return out.getContents();
+}
+
+bool Parser::parseLogicalOperator(std::string& op) {
+    // remember to invert the condition since we jump to the end if true
+    if (op == "==") {
+        op = "ne";
+    } else if (op == "!=") {
+        op = "eq";
+    } else if (op == "<") {
+        op = "ge";
+    } else if (op == ">") {
+        op = "le";
+    } else if (op == "<=") {
+        op = "gt";
+    } else if (op == ">=") {
+        op = "lt";
+    } else {
+        return false;
+    }
+    op = 'b' + op;
+    return true;
 }
 
 bool Parser::parseValue(std::string& value) {
