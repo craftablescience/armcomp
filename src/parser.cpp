@@ -199,7 +199,6 @@ bool Parser::parseLogicalOperator(std::string& op) {
 }
 
 bool Parser::parseValue(std::string& value) {
-    // todo: sloppily written
     if (value.empty())
         return false;
     if (std::isalpha(value[0])) {

@@ -19,7 +19,7 @@ public:
     ~Parser();
     [[nodiscard]] ParseResponse parse();
     [[nodiscard]] std::string getCodeBlock() const;
-    [[nodiscard]] static std::string getDataBlock() ;
+    [[nodiscard]] static std::string getDataBlock();
     [[nodiscard]] std::string getAssembly() const;
 private:
     std::fstream file;
@@ -27,7 +27,7 @@ private:
     static inline std::vector<std::string> strings;
     static inline std::vector<std::string> variables;
 
-    static bool parseLogicalOperator(std::string& op);
-    static bool parseValue(std::string& value);
-    static bool parseStringLiteral(std::string& literal);
+    [[nodiscard]] static bool parseLogicalOperator(std::string& op);
+    [[nodiscard]] static bool parseValue(std::string& value);
+    [[nodiscard]] static bool parseStringLiteral(std::string& literal);
 };
