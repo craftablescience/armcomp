@@ -4,9 +4,5 @@
 
 # Project exclude paths
 cmake-build-*/
-build/
-gen/
-out/
-
-# ANTLR
-src/antlr/generated/
+build*/
+out*/
