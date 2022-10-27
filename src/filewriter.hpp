@@ -5,9 +5,19 @@
 class FileWriter {
 public:
     FileWriter() = default;
-    FileWriter& operator<<(const std::string& line);
+    FileWriter& operator<<(const auto& line) {
+        this->writeLine(line);
+        return *this;
+    }
+    void writeLine(const auto& line, bool newline = true) {
+        for (int i = 0; i < this->indentLevel; i++) {
+            this->contents += '\t';
+        }
+        this->contents += line + std::string{newline ? "\n" : ""};
+    }
     [[nodiscard]] const std::string& getContents() const;
-    void writeLine(const std::string& line, bool newline = true);
+    [[nodiscard]] int getIndent() const;
+    void setIndent(int indent);
     void indent();
     void dedent();
 private:

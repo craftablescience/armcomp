@@ -19,11 +19,21 @@ public:
     ~Parser();
     [[nodiscard]] ParseResponse parse();
     [[nodiscard]] std::string getCodeBlock() const;
+    [[nodiscard]] std::string getProcedureBlock() const;
     [[nodiscard]] static std::string getDataBlock();
     [[nodiscard]] std::string getAssembly() const;
 private:
     std::fstream file;
-    FileWriter code;
+    FileWriter main;
+    FileWriter procedures;
+
+    bool insideASM = false;
+    bool insideProcedure = false;
+
+    [[nodiscard]] inline FileWriter& activeCode() {
+        return this->insideProcedure ? this->procedures : this->main;
+    }
+
     static inline std::vector<std::string> strings;
     static inline std::vector<std::string> variables;
 
