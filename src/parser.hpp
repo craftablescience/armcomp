@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <stack>
 
 #include "filewriter.hpp"
 
@@ -35,7 +36,7 @@ private:
     }
 
     static inline std::vector<std::string> strings;
-    static inline std::vector<std::string> variables;
+    static inline std::stack<std::vector<std::string>> variables;
 
     [[nodiscard]] static bool parseLogicalOperator(std::string& op);
     [[nodiscard]] static bool parseValue(std::string& value);

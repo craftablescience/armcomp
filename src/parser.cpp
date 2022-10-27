@@ -24,6 +24,8 @@ ParseResponse Parser::parse() {
     if (!this->file.is_open())
         return {false, "Could not open file!"};
 
+    variables.push({});
+
     this->main << ".text" << ".global _start" << "_start:";
     this->main.indent();
     this->procedures.indent();
@@ -46,7 +48,7 @@ ParseResponse Parser::parse() {
             continue;
 
         if (this->insideASM && lines[0] != "end") {
-            // treat each line like raw ASM
+            // todo: treat each line like raw ASM, but replace ${variable} with the corresponding register
             this->activeCode() << line;
             continue;
         }
@@ -74,16 +76,30 @@ ParseResponse Parser::parse() {
             this->activeCode() << "cmp " + value1 + ", " + value2 << branch;
             endings.push("b ." ASM_WHILE_LABEL_PREFIX + std::to_string(hardcodedLabels - 2) + '\n' + labelEnd + ':');
 
-        } else if (lines[0] == "proc") {
+        } else if (lines[0] == "func") {
             if (this->insideProcedure)
-                return {false, "Cannot have procedures inside procedures! (\"" + line + "\")"};
+                return {false, "Cannot have functions inside functions! (\"" + line + "\")"};
             this->insideProcedure = true;
-            if (lines.size() != 2)
-                return {false, "Invalid syntax for proc call: \"" + line + '\"'};
+            if (lines.size() < 2 || lines.size() >= 10)
+                return {false, "Invalid syntax for func call: \"" + line + '\"'};
             this->activeCode().dedent();
             this->activeCode() << lines[1] + ':';
             this->activeCode().indent();
-            endings.push("ret");
+
+            for (int i = ASM_REGISTER_OFFSET; i < variables.top().size() + ASM_REGISTER_OFFSET; i++) {
+                // this is a waste of space... too bad!
+                this->activeCode() << "str x" + std::to_string(i) + ", [sp, #-0x10]!";
+            }
+            this->activeCode() << "str lr, [sp, #-0x10]!";
+
+            std::string ending = "ldr lr, [sp], #0x10\n";
+            for (int i = static_cast<int>(variables.top().size()) + ASM_REGISTER_OFFSET - 1; i >= ASM_REGISTER_OFFSET; i--) {
+                ending += "\tldr x" + std::to_string(i) + ", [sp], #0x10\n";
+            }
+            ending += "\tret";
+
+            endings.push(ending);
+            variables.push({});
 
         } else if (lines[0] == "call") {
             if (lines.size() != 2)
@@ -104,19 +120,21 @@ ParseResponse Parser::parse() {
                 this->activeCode() << endings.top();
                 if (endings.top().starts_with('.'))
                     this->activeCode().indent();
-                if (this->insideProcedure)
+                if (this->insideProcedure) {
                     this->insideProcedure = false;
+                    variables.pop();
+                }
                 endings.pop();
             }
 
         } else if (lines[0] == "let") {
-            if (lines.size() < 4 || lines[2] != "=" || std::find(variables.begin(), variables.end(), lines[1]) != variables.end())
+            if (lines.size() < 4 || lines[2] != "=" || std::find(variables.top().begin(), variables.top().end(), lines[1]) != variables.top().end())
                 return {false, "Invalid syntax for let call: \"" + line + '\"'};
             std::string value = lines[3];
             if (!parseValue(value))
                 return {false, "Invalid syntax: \"" + line + '\"'};
-            this->activeCode() << "mov x" + std::to_string(variables.size() + ASM_REGISTER_OFFSET) + ", " + value;
-            variables.push_back(lines[1]);
+            this->activeCode() << "mov x" + std::to_string(variables.top().size() + ASM_REGISTER_OFFSET) + ", " + value;
+            variables.top().push_back(lines[1]);
 
         } else if (lines[0] == "label") {
             if (lines.size() < 2)
@@ -159,7 +177,7 @@ ParseResponse Parser::parse() {
             }
             this->activeCode() << "mov x8, #93" << "svc 0";
 
-        } else if (auto find = std::find(variables.begin(), variables.end(), lines[0]); find != variables.end()) {
+        } else if (auto find = std::find(variables.top().begin(), variables.top().end(), lines[0]); find != variables.top().end()) {
             if (lines.size() == 3) {
                 std::string op;
                 if (lines[1] == "=") {
@@ -260,8 +278,8 @@ bool Parser::parseValue(std::string& value) {
         return false;
     if (std::isalpha(value[0])) {
         // variable
-        if (auto find = std::find(variables.begin(), variables.end(), value); find != variables.end()) {
-            value = "x" + std::to_string(std::distance(variables.begin(), find) + ASM_REGISTER_OFFSET);
+        if (auto find = std::find(variables.top().begin(), variables.top().end(), value); find != variables.top().end()) {
+            value = "x" + std::to_string(std::distance(variables.top().begin(), find) + ASM_REGISTER_OFFSET);
             return true;
         }
         return false;
