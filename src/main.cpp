@@ -16,8 +16,8 @@ int main(int argc, const char* argv[]) {
     std::cout << "Transpiling \"" << argv[1] << "\"...\n";
     Parser parser{argv[1]};
     auto response = parser.parse();
-    if (!response.success) {
-        std::cout << response.errorReason << '\n';
+    if (!response.empty()) {
+        std::cout << response << '\n';
         return 1;
     }
 

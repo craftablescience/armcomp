@@ -10,11 +10,6 @@
 
 #include "filewriter.hpp"
 
-struct ParseResponse {
-    bool success;
-    std::string errorReason;
-};
-
 enum ValueType {
     VALUE_ERROR    = 0,
     VALUE_NUMBER   = 1,
@@ -25,7 +20,7 @@ class Parser {
 public:
     explicit Parser(const std::string& filepath);
     ~Parser();
-    [[nodiscard]] ParseResponse parse();
+    [[nodiscard]] std::string parse();
     [[nodiscard]] std::string getCodeBlock() const;
     [[nodiscard]] std::string getProcedureBlock() const;
     [[nodiscard]] static std::string getDataBlock();

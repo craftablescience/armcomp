@@ -24,9 +24,9 @@ Parser::~Parser() {
     this->file.close();
 }
 
-ParseResponse Parser::parse() {
+std::string Parser::parse() {
     if (!this->file.is_open())
-        return {false, "Could not open file!"};
+        return "Could not open file!";
 
     pushVariableStack();
 
@@ -62,7 +62,7 @@ ParseResponse Parser::parse() {
         if (lines[0] == "if") {
             std::string value1 = lines[1], op = lines[2], value2 = lines[3];
             if (lines.size() != 4 || !parseValue(value1) || !parseLogicalOperator(op) || !parseValue(value2))
-                return {false, "Invalid syntax for if call: \"" + line + '\"'};
+                return "Invalid syntax for if call: \"" + line + '\"';
 
             std::string branch = op;
             std::string label = "." ASM_IF_LABEL_PREFIX + std::to_string(hardcodedLabels++);
@@ -75,7 +75,7 @@ ParseResponse Parser::parse() {
         } else if (lines[0] == "while") {
             std::string value1 = lines[1], op = lines[2], value2 = lines[3];
             if (lines.size() != 4 || !parseValue(value1) || !parseLogicalOperator(op) || !parseValue(value2))
-                return {false, "Invalid syntax for while call: \"" + line + '\"'};
+                return "Invalid syntax for while call: \"" + line + '\"';
 
             this->activeCode().dedent();
             this->activeCode() << "." ASM_WHILE_LABEL_PREFIX + std::to_string(hardcodedLabels++) + ':';
@@ -90,9 +90,9 @@ ParseResponse Parser::parse() {
 
         } else if (lines[0] == "func") {
             if (lines.size() < 2 || lines.size() >= 10)
-                return {false, "Invalid syntax for func call: \"" + line + '\"'};
+                return "Invalid syntax for func call: \"" + line + '\"';
             if (this->insideProcedure)
-                return {false, "Cannot have functions inside functions! (\"" + line + "\")"};
+                return "Cannot have functions inside functions! (\"" + line + "\")";
             this->insideProcedure = true;
 
             this->activeCode().dedent();
@@ -116,12 +116,12 @@ ParseResponse Parser::parse() {
 
         } else if (lines[0] == "return") {
             if (lines.size() > 2)
-                return {false, "Invalid syntax for return call: \"" + line + '\"'};
+                return "Invalid syntax for return call: \"" + line + '\"';
 
             if (lines.size() == 2) {
                 std::string value = lines[1];
                 if (!parseValue(value))
-                    return {false, "Invalid syntax for return call: \"" + line + '\"'};
+                    return "Invalid syntax for return call: \"" + line + '\"';
 
                 this->activeCode() << "mov " ASM_REGISTER_RETURN_VALUE ", " + value;
             } else {
@@ -131,11 +131,11 @@ ParseResponse Parser::parse() {
 
         } else if (lines[0] == "call") {
             if (lines.size() < 2 || lines.size() >= 10)
-                return {false, "Invalid syntax for call call: \"" + line + '\"'};
+                return "Invalid syntax for call call: \"" + line + '\"';
             if (!functions.contains(lines[1]))
-                return {false, "Function is not defined: \"" + line + '\"'};
+                return "Function is not defined: \"" + line + '\"';
             if (functions.at(lines[1]).size() != lines.size() - 2)
-                return {false, "Function has a different number of parameters: \"" + line + '\"'};
+                return "Function has a different number of parameters: \"" + line + '\"';
 
             const auto& vars = variables.top();
 
@@ -159,7 +159,7 @@ ParseResponse Parser::parse() {
 
         } else if (lines[0] == "asm") {
             if (lines.size() > 1)
-                return {false, "Invalid syntax for asm call: \"" + line + '\"'};
+                return "Invalid syntax for asm call: \"" + line + '\"';
             this->insideASM = true;
             // no need to bump callDepth here
 
@@ -184,17 +184,17 @@ ParseResponse Parser::parse() {
 
         } else if (lines[0] == "let") {
             if (lines.size() < 4 || lines.size() > 4 || lines[2] != "=" || std::find(variables.top().begin(), variables.top().end(), lines[1]) != variables.top().end())
-                return {false, "Invalid syntax for let call: \"" + line + '\"'};
+                return "Invalid syntax for let call: \"" + line + '\"';
             std::string value = lines[3];
             if (!parseValue(value))
-                return {false, "Invalid syntax: \"" + line + '\"'};
+                return "Invalid syntax: \"" + line + '\"';
 
             this->activeCode() << "mov x" + std::to_string(variables.top().size() + ASM_REGISTER_OFFSET) + ", " + value;
             variables.top().push_back(lines[1]);
 
         } else if (lines[0] == "label") {
             if (lines.size() < 2)
-                return {false, "Invalid syntax for label: \"" + line + '\"'};
+                return "Invalid syntax for label: \"" + line + '\"';
 
             this->activeCode().dedent();
             this->activeCode() << "." + lines[1] + ":";
@@ -202,13 +202,13 @@ ParseResponse Parser::parse() {
 
         } else if (lines[0] == "goto") {
             if (lines.size() < 2)
-                return {false, "Invalid syntax for goto: \"" + line + '\"'};
+                return "Invalid syntax for goto: \"" + line + '\"';
 
             this->activeCode() << "b ." + lines[1];
 
         } else if (lines[0] == "print") {
             if (lines.size() < 2)
-                return {false, "Invalid syntax for print: \"" + line + '\"'};
+                return "Invalid syntax for print: \"" + line + '\"';
 
             this->activeCode() << "mov x0, #1";
             auto str = std::string{ASM_STRING_PREFIX} + std::to_string(strings.size());
@@ -216,12 +216,12 @@ ParseResponse Parser::parse() {
             this->activeCode() << "mov x8, 0x40" << "svc 0";
             std::string literal = line.substr(6);
             if (!parseStringLiteral(literal))
-                return {false, "Encountered invalid literal: " + literal};
+                return "Encountered invalid literal: " + literal;
             strings.push_back(literal);
 
         } else if (lines[0] == "println") {
             if (lines.size() < 2)
-                return {false, "Invalid syntax for println: \"" + line + '\"'};
+                return "Invalid syntax for println: \"" + line + '\"';
 
             this->activeCode() << "mov x0, #1";
             auto str = std::string{ASM_STRING_PREFIX} + std::to_string(strings.size());
@@ -229,17 +229,17 @@ ParseResponse Parser::parse() {
             this->activeCode() << "mov x8, 0x40" << "svc 0";
             std::string literal = line.substr(8);
             if (!parseStringLiteral(literal))
-                return {false, "Encountered invalid literal: " + literal};
+                return "Encountered invalid literal: " + literal;
             strings.push_back(literal + "\\n");
 
         } else if (lines[0] == "exit") {
             if (lines.size() > 2)
-                return {false, "Invalid syntax for exit: \"" + line + '\"'};
+                return "Invalid syntax for exit: \"" + line + '\"';
 
             if (lines.size() > 1) {
                 std::string value = lines[1];
                 if (!parseValue(value))
-                    return {false, "Invalid syntax: \"" + line + '\"'};
+                    return "Invalid syntax: \"" + line + '\"';
                 this->activeCode() << "mov x0, " + value;
             }
             this->activeCode() << "mov x8, #93" << "svc 0";
@@ -252,31 +252,31 @@ ParseResponse Parser::parse() {
                 } else {
                     op = lines[1].substr(0,1);
                     if (!parseMathOperator(op))
-                        return {false, "Invalid syntax: \"" + line + '\"'};
+                        return "Invalid syntax: \"" + line + '\"';
                 }
 
                 std::string var = lines[0], value = lines[2];
                 if (!parseValue(var) || !parseValue(value))
-                    return {false, "Invalid syntax: \"" + line + '\"'};
+                    return "Invalid syntax: \"" + line + '\"';
 
                 this->activeCode() << op + ' ' + var + ", " + (lines[1] != "=" ? var + ", " : "") + value;
             } else if (lines.size() == 5 && lines[1] == "=") {
                 std::string op = lines[3];
                 if (!parseMathOperator(op))
-                    return {false, "Invalid syntax: \"" + line + '\"'};
+                    return "Invalid syntax: \"" + line + '\"';
 
                 std::string var = lines[0], value1 = lines[2], value2 = lines[4];
                 if (!parseValue(var) || !parseValue(value1) || !parseValue(value2))
-                    return {false, "Invalid syntax: \"" + line + '\"'};
+                    return "Invalid syntax: \"" + line + '\"';
                 // todo: this can be extended to larger equations
                 this->activeCode() << op + " " ASM_REGISTER_MATH_HELPER ", " + value1 + ", " + value2;
                 this->activeCode() << "mov " + var + ", " ASM_REGISTER_MATH_HELPER;
             } else {
-                return {false, "Invalid syntax: \"" + line + '\"'};
+                return "Invalid syntax: \"" + line + '\"';
             }
 
         } else {
-            return {false, "Encountered unexpected operation! Found in line that reads \"" + line + "\""};
+            return "Encountered unexpected operation! Found in line that reads \"" + line + "\"";
         }
     }
 
@@ -286,7 +286,7 @@ ParseResponse Parser::parse() {
 
     popVariableStack();
 
-    return {true, ""};
+    return "";
 }
 
 std::string Parser::getAssembly() const {
