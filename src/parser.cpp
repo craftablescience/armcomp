@@ -54,7 +54,11 @@ std::string Parser::parse() {
             continue;
 
         if (this->insideASM && lines[0] != "end") {
-            // todo: treat each line like raw ASM, but replace ${variable} with the corresponding register
+            // replace ${var} with the proper register
+            for (int i = 0; i < this->variables.top().size(); i++) {
+                std::string varToReplace = "${" + this->variables.top().at(i) + "}";
+                replaceSubstring(line, varToReplace, "x" + std::to_string(i + ASM_REGISTER_OFFSET));
+            }
             this->activeCode() << line;
             continue;
         }
