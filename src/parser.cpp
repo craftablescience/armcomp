@@ -178,8 +178,9 @@ ParseResponse Parser::parse() {
                     popVariableStack();
                 }
                 endings.pop();
+
+                callDepth--;
             }
-            callDepth--;
 
         } else if (lines[0] == "let") {
             if (lines.size() < 4 || lines[2] != "=" || std::find(variables.top().begin(), variables.top().end(), lines[1]) != variables.top().end())
