@@ -14,6 +14,7 @@ enum ValueType {
     VALUE_ERROR    = 0,
     VALUE_NUMBER   = 1,
     VALUE_VARIABLE = 2,
+    VALUE_FUNCTION = 3,
 };
 
 class Parser {
@@ -23,7 +24,7 @@ public:
     [[nodiscard]] std::string parse();
     [[nodiscard]] std::string getCodeBlock() const;
     [[nodiscard]] std::string getProcedureBlock() const;
-    [[nodiscard]] static std::string getDataBlock();
+    [[nodiscard]] std::string getDataBlock() const;
     [[nodiscard]] std::string getAssembly() const;
 private:
     std::fstream file;
@@ -37,15 +38,21 @@ private:
         return this->insideProcedure ? this->procedures : this->main;
     }
 
-    static inline std::vector<std::string> strings;
-    static inline std::stack<std::vector<std::string>> variables;
-    static inline std::unordered_map<std::string, std::vector<std::string>> functions;
+    std::vector<std::string> strings;
+    std::stack<std::vector<std::string>> variables;
+    std::unordered_map<std::string, std::vector<std::string>> functions;
 
-    static void pushVariableStack();
-    static void popVariableStack();
+    [[nodiscard]] inline bool hasVariable(const std::string& varName) const {
+        return std::find(this->variables.top().begin(), this->variables.top().end(), varName) != this->variables.top().end();
+    }
+
+    void pushVariableStack();
+    void popVariableStack();
+
+    [[nodiscard]] ValueType getValueType(const std::string& value);
+    [[nodiscard]] ValueType parseValue(std::string& value);
 
     [[nodiscard]] static bool parseMathOperator(std::string& op);
     [[nodiscard]] static bool parseLogicalOperator(std::string& op);
-    [[nodiscard]] static ValueType parseValue(std::string& value);
     [[nodiscard]] static bool parseStringLiteral(std::string& literal);
 };

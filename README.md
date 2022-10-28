@@ -22,7 +22,7 @@ func important_check in
     end
 end
 
-call important_check x
+important_check x
 
 while y > x
     x += 100
