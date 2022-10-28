@@ -195,7 +195,7 @@ ParseResponse Parser::parse() {
             this->activeCode() << "b ." + lines[1];
 
         } else if (lines[0] == "print") {
-            if (lines.size() != 2)
+            if (lines.size() < 2)
                 return {false, "Invalid syntax for print: \"" + line + '\"'};
 
             this->activeCode() << "mov x0, #1";
@@ -208,7 +208,7 @@ ParseResponse Parser::parse() {
             strings.push_back(literal);
 
         } else if (lines[0] == "println") {
-            if (lines.size() != 2)
+            if (lines.size() < 2)
                 return {false, "Invalid syntax for println: \"" + line + '\"'};
 
             this->activeCode() << "mov x0, #1";
