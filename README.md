@@ -16,9 +16,13 @@ let y = x
 x = y + 8
 y = x * x
 
-if x == 20
-    println "x is currently 20!"
+func important_check in
+    if in == 20
+        println "x is currently 20!"
+    end
 end
+
+call important_check x
 
 while y > x
     x += 100
@@ -33,44 +37,57 @@ Turns into this ARM assembly code:
 .text
 .global _start
 _start:
-    mov x10, #12
-    mov x11, x10
-    add x9, x11, #8
-    mov x10, x9
-    mul x9, x10, x10
-    mov x11, x9
-    cmp x10, #20
-    bne ._i0
-    mov x0, #1
-    ldr x1, =_s0
-    ldr x2, =_s0_len
-    mov x8, 0x40
-    svc 0
-._i0:
-._w1:
-    cmp x11, x10
-    ble ._w2
-    add x10, x10, #100
-    mov x0, #1
-    ldr x1, =_s1
-    ldr x2, =_s1_len
-    mov x8, 0x40
-    svc 0
-    b ._w1
-._w2:
-    mov x0, #1
-    ldr x1, =_s2
-    ldr x2, =_s2_len
-    mov x8, 0x40
-    svc 0
-    mov x0, x10
-    mov x8, #93
-    svc 0
+	mov x11, #12
+	mov x12, x11
+	add x9, x12, #8
+	mov x11, x9
+	mul x9, x11, x11
+	mov x12, x9
+	mov x0, x11
+	str x11, [sp, #-0x10]!
+	str x12, [sp, #-0x10]!
+	bl important_check
+	ldr x12, [sp], #0x10
+	ldr x11, [sp], #0x10
+._while1:
+	cmp x12, x11
+	ble ._while2
+	add x11, x11, #100
+	mov x0, #1
+	ldr x1, =_str1
+	ldr x2, =_str1_len
+	mov x8, 0x40
+	svc 0
+	b ._while1
+._while2:
+	mov x0, #1
+	ldr x1, =_str2
+	ldr x2, =_str2_len
+	mov x8, 0x40
+	svc 0
+	mov x0, x11
+	mov x8, #93
+	svc 0
+	b ._proc_end
+important_check:
+	str lr, [sp, #-0x10]!
+	mov x11, x0
+	cmp x11, #20
+	bne ._if0
+	mov x0, #1
+	ldr x1, =_str0
+	ldr x2, =_str0_len
+	mov x8, 0x40
+	svc 0
+._if0:
+	ldr lr, [sp], #0x10
+	ret
+._proc_end:
 .data
-_s0: .asciz "x is currently 20!\n"
-_s0_len = .-_s0
-_s1: .asciz "BUNP\n"
-_s1_len = .-_s1
-_s2: .asciz "that's all folks!\n"
-_s2_len = .-_s2
+_str0: .asciz "x is currently 20!\n"
+_str0_len = .-_str0
+_str1: .asciz "BUNP\n"
+_str1_len = .-_str1
+_str2: .asciz "that's all folks!\n"
+_str2_len = .-_str2
 ```
