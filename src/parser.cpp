@@ -6,13 +6,13 @@
 
 #include "utilities.hpp"
 
-#define ASM_IF_LABEL_PREFIX "_i"
-#define ASM_WHILE_LABEL_PREFIX "_w"
-#define ASM_STRING_PREFIX "_s"
+#define ASM_IF_LABEL_PREFIX "_if"
+#define ASM_WHILE_LABEL_PREFIX "_while"
+#define ASM_STRING_PREFIX "_str"
 #define ASM_PROCEDURE_END_LABEL "_proc_end"
 #define ASM_REGISTER_MATH_HELPER "9"
 #define ASM_REGISTER_RETURN_VALUE "10"
-// There is a predefined return variable "_", so the real offset is 11
+// There is a predefined return variable "_"
 #define ASM_REGISTER_OFFSET 10
 #define ASM_REGISTER_TRUE_OFFSET 11
 
@@ -37,6 +37,8 @@ ParseResponse Parser::parse() {
 
     uint16_t hardcodedLabels = 0;
     std::stack<std::string> endings;
+
+    int callDepth = 0;
 
     std::string line;
     while (std::getline(this->file, line)) {
@@ -68,6 +70,8 @@ ParseResponse Parser::parse() {
             this->activeCode() << "cmp " + value1 + ", " + value2 << branch;
             endings.push(label + ':');
 
+            callDepth++;
+
         } else if (lines[0] == "while") {
             std::string value1 = lines[1], op = lines[2], value2 = lines[3];
             if (lines.size() != 4 || !parseValue(value1) || !parseLogicalOperator(op) || !parseValue(value2))
@@ -81,6 +85,8 @@ ParseResponse Parser::parse() {
             branch += ' ' + labelEnd;
             this->activeCode() << "cmp " + value1 + ", " + value2 << branch;
             endings.push("b ." ASM_WHILE_LABEL_PREFIX + std::to_string(hardcodedLabels - 2) + '\n' + labelEnd + ':');
+
+            callDepth++;
 
         } else if (lines[0] == "func") {
             if (lines.size() < 2 || lines.size() >= 10)
@@ -105,6 +111,8 @@ ParseResponse Parser::parse() {
                 this->activeCode() << "mov x" + std::to_string(i - 2 + ASM_REGISTER_TRUE_OFFSET) + ", x" + std::to_string(i-2);
             }
             functions[lines[1]] = parameters;
+
+            callDepth++;
 
         } else if (lines[0] == "return") {
             if (lines.size() > 2)
@@ -153,6 +161,7 @@ ParseResponse Parser::parse() {
             if (lines.size() > 1)
                 return {false, "Invalid syntax for asm call: \"" + line + '\"'};
             this->insideASM = true;
+            // no need to bump callDepth here
 
         } else if (lines[0] == "end") {
             if (this->insideASM) {
@@ -163,12 +172,14 @@ ParseResponse Parser::parse() {
                 this->activeCode() << endings.top();
                 if (endings.top().starts_with('.'))
                     this->activeCode().indent();
-                if (this->insideProcedure) {
+                // Only end function if we are actually ending the function
+                if (this->insideProcedure && callDepth == 1) {
                     this->insideProcedure = false;
                     popVariableStack();
                 }
                 endings.pop();
             }
+            callDepth--;
 
         } else if (lines[0] == "let") {
             if (lines.size() < 4 || lines[2] != "=" || std::find(variables.top().begin(), variables.top().end(), lines[1]) != variables.top().end())
