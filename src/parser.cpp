@@ -357,24 +357,24 @@ bool Parser::parseLogicalOperator(std::string& op) {
     return true;
 }
 
-bool Parser::parseValue(std::string& value) {
+ValueType Parser::parseValue(std::string& value) {
     if (value.empty())
-        return false;
+        return VALUE_ERROR;
     if ((std::isalpha(value[0]) || value[0] == '_') && std::all_of(value.begin(), value.end(), [](char c) {
         return std::isalnum(c) || std::isalpha(c) || c == '_';
     })) {
         // variable
         if (auto find = std::find(variables.top().begin(), variables.top().end(), value); find != variables.top().end()) {
             value = "x" + std::to_string(std::distance(variables.top().begin(), find) + ASM_REGISTER_OFFSET);
-            return true;
+            return VALUE_VARIABLE;
         }
-        return false;
+        return VALUE_ERROR;
     } else if (std::isalnum(value[0])) {
         // number
         value = "#" + value;
-        return true;
+        return VALUE_NUMBER;
     }
-    return false;
+    return VALUE_ERROR;
 }
 
 bool Parser::parseStringLiteral(std::string& literal) {

@@ -15,6 +15,12 @@ struct ParseResponse {
     std::string errorReason;
 };
 
+enum ValueType {
+    VALUE_ERROR    = 0,
+    VALUE_NUMBER   = 1,
+    VALUE_VARIABLE = 2,
+};
+
 class Parser {
 public:
     explicit Parser(const std::string& filepath);
@@ -45,6 +51,6 @@ private:
 
     [[nodiscard]] static bool parseMathOperator(std::string& op);
     [[nodiscard]] static bool parseLogicalOperator(std::string& op);
-    [[nodiscard]] static bool parseValue(std::string& value);
+    [[nodiscard]] static ValueType parseValue(std::string& value);
     [[nodiscard]] static bool parseStringLiteral(std::string& literal);
 };
