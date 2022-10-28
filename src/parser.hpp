@@ -11,10 +11,11 @@
 #include "filewriter.hpp"
 
 enum ValueType {
-    VALUE_ERROR    = 0,
-    VALUE_NUMBER   = 1,
-    VALUE_VARIABLE = 2,
-    VALUE_FUNCTION = 3,
+    VALUE_ERROR                = 0,
+    VALUE_NUMBER               = 1,
+    VALUE_UNDEFINED_IDENTIFIER = 2,
+    VALUE_VARIABLE             = 3,
+    VALUE_FUNCTION             = 4,
 };
 
 class Parser {
@@ -50,7 +51,7 @@ private:
     void popVariableStack();
 
     [[nodiscard]] ValueType getValueType(const std::string& value);
-    [[nodiscard]] ValueType parseValue(std::string& value);
+    ValueType parseValue(std::string& value);
 
     [[nodiscard]] static bool parseMathOperator(std::string& op);
     [[nodiscard]] static bool parseLogicalOperator(std::string& op);

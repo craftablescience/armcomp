@@ -252,8 +252,6 @@ std::string Parser::parse() {
                 }
 
                 case VALUE_FUNCTION: {
-                    if (lines.size() >= 9)
-                        return "Invalid syntax for call call: \"" + line + '\"';
                     if (!this->functions.contains(lines[0]))
                         return "Function is not defined: \"" + line + '\"';
                     if (this->functions.at(lines[0]).size() != lines.size() - 1)
@@ -263,10 +261,18 @@ std::string Parser::parse() {
 
                     // Copy all arguments to x0-x7 (which are copied to usable registers inside the func)
                     for (int i = 1; i < lines.size(); i++) {
-                        for (int j = 0; j < vars.size(); j++) {
-                            if (vars[j] == lines[i]) {
-                                this->activeCode() << "mov x" + std::to_string(i-1) + ", x" + std::to_string(j + ASM_REGISTER_OFFSET);
+                        std::string value = lines[i];
+                        const auto valType = parseValue(value);
+                        if (valType == VALUE_NUMBER) {
+                            this->activeCode() << "mov x" + std::to_string(i-1) + ", " + value;
+                        } else if (valType == VALUE_VARIABLE) {
+                            for (const auto& var : vars) {
+                                if (var == lines[i]) {
+                                    this->activeCode() << "mov x" + std::to_string(i-1) + ", " + value;
+                                }
                             }
+                        } else {
+                            return "Invalid syntax for function call: \"" + line + '\"';
                         }
                     }
 
@@ -348,7 +354,7 @@ ValueType Parser::getValueType(const std::string& value) {
         } else if (this->functions.contains(value)) {
             return VALUE_FUNCTION;
         }
-        return VALUE_ERROR;
+        return VALUE_UNDEFINED_IDENTIFIER;
     } else if (std::isalnum(value[0])) {
         return VALUE_NUMBER;
     }
@@ -359,6 +365,8 @@ ValueType Parser::parseValue(std::string& value) {
     const auto result = this->getValueType(value);
     switch (result) {
         case VALUE_ERROR:
+        case VALUE_UNDEFINED_IDENTIFIER:
+        case VALUE_FUNCTION:
             break;
         case VALUE_NUMBER:
             value = "#" + value;
@@ -368,8 +376,6 @@ ValueType Parser::parseValue(std::string& value) {
             value = "x" + std::to_string(std::distance(this->variables.top().begin(), find) + ASM_REGISTER_OFFSET);
             break;
         }
-        case VALUE_FUNCTION:
-            break;
     }
     return result;
 }
