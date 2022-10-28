@@ -10,8 +10,8 @@
 #define ASM_WHILE_LABEL_PREFIX "_while"
 #define ASM_STRING_PREFIX "_str"
 #define ASM_PROCEDURE_END_LABEL "_proc_end"
-#define ASM_REGISTER_MATH_HELPER "9"
-#define ASM_REGISTER_RETURN_VALUE "10"
+#define ASM_REGISTER_MATH_HELPER "x9"
+#define ASM_REGISTER_RETURN_VALUE "x10"
 // There is a predefined return variable "_"
 #define ASM_REGISTER_OFFSET 10
 #define ASM_REGISTER_TRUE_OFFSET 11
@@ -123,9 +123,9 @@ ParseResponse Parser::parse() {
                 if (!parseValue(value))
                     return {false, "Invalid syntax for return call: \"" + line + '\"'};
 
-                this->activeCode() << "mov x" ASM_REGISTER_RETURN_VALUE ", " + value;
+                this->activeCode() << "mov " ASM_REGISTER_RETURN_VALUE ", " + value;
             } else {
-                this->activeCode() << "mov x" ASM_REGISTER_RETURN_VALUE ", #0";
+                this->activeCode() << "mov " ASM_REGISTER_RETURN_VALUE ", #0";
             }
             this->activeCode() << "ldr lr, [sp], #0x10" << "ret";
 
@@ -183,7 +183,7 @@ ParseResponse Parser::parse() {
             }
 
         } else if (lines[0] == "let") {
-            if (lines.size() < 4 || lines[2] != "=" || std::find(variables.top().begin(), variables.top().end(), lines[1]) != variables.top().end())
+            if (lines.size() < 4 || lines.size() > 4 || lines[2] != "=" || std::find(variables.top().begin(), variables.top().end(), lines[1]) != variables.top().end())
                 return {false, "Invalid syntax for let call: \"" + line + '\"'};
             std::string value = lines[3];
             if (!parseValue(value))
@@ -249,30 +249,22 @@ ParseResponse Parser::parse() {
                 std::string op;
                 if (lines[1] == "=") {
                     op = "mov";
-                } else if (lines[1] == "+=") {
-                    op = "add";
-                } else if (lines[1] == "-=") {
-                    op = "sub";
-                } else if (lines[1] == "*=") {
-                    op = "mul";
                 } else {
-                    return {false, "Invalid syntax: \"" + line + '\"'};
+                    op = lines[1].substr(0,1);
+                    if (!parseMathOperator(op))
+                        return {false, "Invalid syntax: \"" + line + '\"'};
                 }
+
                 std::string var = lines[0], value = lines[2];
                 if (!parseValue(var) || !parseValue(value))
                     return {false, "Invalid syntax: \"" + line + '\"'};
-                this->activeCode() << op + ' ' + var + ", " + (!op.starts_with("mov") ? var + ", " : "") + value;
+
+                this->activeCode() << op + ' ' + var + ", " + (lines[1] != "=" ? var + ", " : "") + value;
             } else if (lines.size() == 5 && lines[1] == "=") {
-                std::string op;
-                if (lines[3] == "+") {
-                    op = "add";
-                } else if (lines[3] == "-") {
-                    op = "sub";
-                } else if (lines[3] == "*") {
-                    op = "mul";
-                } else {
+                std::string op = lines[3];
+                if (!parseMathOperator(op))
                     return {false, "Invalid syntax: \"" + line + '\"'};
-                }
+
                 std::string var = lines[0], value1 = lines[2], value2 = lines[4];
                 if (!parseValue(var) || !parseValue(value1) || !parseValue(value2))
                     return {false, "Invalid syntax: \"" + line + '\"'};
@@ -329,6 +321,21 @@ void Parser::popVariableStack() {
     variables.pop();
 }
 
+bool Parser::parseMathOperator(std::string& op) {
+    if (op == "+") {
+        op = "add";
+    } else if (op == "-") {
+        op = "sub";
+    } else if (op == "*") {
+        op = "mul";
+    } else if (op == "/") {
+        op = "sdiv";
+    } else {
+        return false;
+    }
+    return true;
+}
+
 bool Parser::parseLogicalOperator(std::string& op) {
     // remember to invert the condition since we jump to the end if true
     if (op == "==") {
@@ -353,14 +360,16 @@ bool Parser::parseLogicalOperator(std::string& op) {
 bool Parser::parseValue(std::string& value) {
     if (value.empty())
         return false;
-    if (std::isalpha(value[0])) {
+    if ((std::isalpha(value[0]) || value[0] == '_') && std::all_of(value.begin(), value.end(), [](char c) {
+        return std::isalnum(c) || std::isalpha(c) || c == '_';
+    })) {
         // variable
         if (auto find = std::find(variables.top().begin(), variables.top().end(), value); find != variables.top().end()) {
             value = "x" + std::to_string(std::distance(variables.top().begin(), find) + ASM_REGISTER_OFFSET);
             return true;
         }
         return false;
-    } else if (std::all_of(value.begin(), value.end(), std::isalnum)) {
+    } else if (std::isalnum(value[0])) {
         // number
         value = "#" + value;
         return true;

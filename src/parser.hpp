@@ -43,6 +43,7 @@ private:
     static void pushVariableStack();
     static void popVariableStack();
 
+    [[nodiscard]] static bool parseMathOperator(std::string& op);
     [[nodiscard]] static bool parseLogicalOperator(std::string& op);
     [[nodiscard]] static bool parseValue(std::string& value);
     [[nodiscard]] static bool parseStringLiteral(std::string& literal);
