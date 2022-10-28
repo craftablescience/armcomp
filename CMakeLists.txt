@@ -20,8 +20,8 @@ add_custom_command(
         PRE_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/src/armsim ${CMAKE_BINARY_DIR})
 
-option(ARMTRANS_BUILD_TESTS "Build test program for ARMTrans" OFF)
-if(ARMTRANS_BUILD_TESTS)
+option(ARMCOMP_BUILD_TESTS "Build test program for ARMComp" OFF)
+if(ARMCOMP_BUILD_TESTS)
     include(FetchContent)
     FetchContent_Declare(
             googletest
