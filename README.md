@@ -1,5 +1,5 @@
-# armtrans
-A basic language that 🏳️‍⚧️piles to ARM assembly so I can write less assembly!
+# armcomp
+A basic language that compiles to ARM assembly so I can write less assembly!
 
 ## requirements
 Python 3.6 or greater must be installed to use this application.
@@ -10,7 +10,7 @@ Without ARMSim there would have been no way to run the generated assembly progra
 
 ## sample code
 This example code:
-```arm
+```fs
 let x = 12
 let y = x
 x = y + 8

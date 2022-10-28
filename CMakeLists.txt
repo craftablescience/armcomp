@@ -1,15 +1,18 @@
 cmake_minimum_required(VERSION 3.16)
-project(armtrans)
+project(armcomp)
 set(CMAKE_CXX_STANDARD 20)
 include(GNUInstallDirs)
 
-add_executable(${PROJECT_NAME}
+add_library(${PROJECT_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/src/filewriter.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/filewriter.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/parser.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/parser.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/utilities.hpp)
+
+add_executable(${PROJECT_NAME}_compiler
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
+target_link_libraries(${PROJECT_NAME}_compiler ${PROJECT_NAME})
 
 # Copy Python scripts next to the executable
 add_custom_command(
