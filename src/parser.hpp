@@ -9,6 +9,7 @@
 #include <unordered_map>
 
 #include "filewriter.hpp"
+#include "prelude.hpp"
 
 enum ValueType {
     VALUE_ERROR                = 0,
@@ -31,6 +32,9 @@ private:
     std::fstream file;
     FileWriter main;
     FileWriter procedures;
+
+    static bool preprocessLine(std::string& line);
+    [[nodiscard]] bool getFileContents(std::vector<std::string>& unparsedLines);
 
     bool insideASM = false;
     bool insideProcedure = false;

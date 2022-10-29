@@ -25,8 +25,9 @@ Parser::~Parser() {
 }
 
 std::string Parser::parse() {
-    if (!this->file.is_open())
-        return "Could not open file!";
+    std::vector<std::string> unparsedLines;
+    if (!getFileContents(unparsedLines))
+        return "Error reading file!";
 
     pushVariableStack();
 
@@ -40,26 +41,19 @@ std::string Parser::parse() {
 
     int callDepth = 0;
 
-    std::string line;
-    while (std::getline(this->file, line)) {
-        while (!line.empty() && line.starts_with(' '))
-            line = line.substr(1);
-
-        // comments must be on their own lines
-        if (line.starts_with("//"))
-            continue;
-
+    for (const auto& line : unparsedLines) {
         auto lines = splitString(line);
         if (lines.empty())
             continue;
 
         if (this->insideASM && lines[0] != "end") {
             // replace ${var} with the proper register
+            std::string asmLine = line;
             for (int i = 0; i < this->variables.top().size(); i++) {
                 std::string varToReplace = "${" + this->variables.top().at(i) + "}";
-                replaceSubstring(line, varToReplace, "x" + std::to_string(i + ASM_REGISTER_OFFSET));
+                replaceSubstring(asmLine, varToReplace, "x" + std::to_string(i + ASM_REGISTER_OFFSET));
             }
-            this->activeCode() << line;
+            this->activeCode() << asmLine;
             continue;
         }
 
@@ -309,10 +303,6 @@ std::string Parser::parse() {
     return "";
 }
 
-std::string Parser::getAssembly() const {
-    return this->getCodeBlock() + this->getProcedureBlock() + this->getDataBlock();
-}
-
 std::string Parser::getCodeBlock() const {
     return this->main.getContents();
 }
@@ -331,6 +321,46 @@ std::string Parser::getDataBlock() const {
         strNum++;
     }
     return out.getContents();
+}
+
+std::string Parser::getAssembly() const {
+    return this->getCodeBlock() + this->getProcedureBlock() + this->getDataBlock();
+}
+
+bool Parser::preprocessLine(std::string& line) {
+    while (!line.empty() && line.starts_with(' '))
+        line = line.substr(1);
+
+    if (line.empty())
+        return false;
+
+    // comments must be on their own lines
+    if (line.starts_with("//"))
+        return false;
+
+    return true;
+}
+
+bool Parser::getFileContents(std::vector<std::string>& unparsedLines) {
+    if (!this->file.is_open())
+        return false;
+
+    // add prelude
+    auto preludeLines = splitString(prelude, '\n');
+    for (auto& line : preludeLines) {
+        if (!preprocessLine(line))
+            continue;
+        unparsedLines.push_back(line);
+    }
+
+    // add file contents
+    std::string line;
+    while (std::getline(this->file, line)) {
+        if (!preprocessLine(line))
+            continue;
+        unparsedLines.push_back(line);
+    }
+    return true;
 }
 
 void Parser::pushVariableStack() {

@@ -8,6 +8,7 @@ add_library(${PROJECT_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/src/filewriter.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/parser.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/parser.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/prelude.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/utilities.hpp)
 
 add_executable(${PROJECT_NAME}_compiler
