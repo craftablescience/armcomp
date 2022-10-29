@@ -8,7 +8,25 @@ The code may rely on C++20 features, I haven't checked. You will need at least a
 ## acknowledgements
 Without ARMSim there would have been no way to run the generated assembly program. To the people that worked on that, thank you ♥️
 
+## commands
+- `if` - Execute the inner code if the condition is true
+- `while` - Run the inner code until the condition is false
+- `func` - Create a new function with optional arguments
+- `return` - Optionally return a value from a function, or exit the function early
+- `asm` - Insert raw assembly. Variables wrapped in `${}` are converted to the register they represent
+- `end` - Ends a block statement (`if`, `while`, `func`, `asm`)
+- `let` - Create a new variable
+- `label` - Insert a label at this position
+- `goto` - Jump to a given label
+- `print` - Print the given string
+- `println` - Print the given string, with a newline inserted at the end (for convenience)
+- `exit` - Exit the program, with an optional return value
+- `<variable name here>` - Modify a variable
+- `<function name here>` - Execute a function that has been defined. Anything returned is stored in the special `_` variable
+
 ## sample code
+See also: [the "standard library"](https://github.com/craftablescience/armcomp/blob/main/src/prelude.hpp)
+
 This example code:
 ```fs
 let x = 12
