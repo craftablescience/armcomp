@@ -89,6 +89,8 @@ std::string Parser::parse() {
         } else if (lines[0] == "func") {
             if (lines.size() < 2 || lines.size() >= 10)
                 return "Invalid syntax for func call: \"" + line + '\"';
+            if (!isValidIdentifier(lines[1]))
+                return "Function identifier is invalid: \"" + line + '\"';
             if (this->insideProcedure)
                 return "Cannot have functions inside functions! (\"" + line + "\")";
             this->insideProcedure = true;
@@ -363,20 +365,18 @@ bool Parser::getFileContents(std::vector<std::string>& unparsedLines) {
     return true;
 }
 
+bool Parser::isValidIdentifier(const std::string& value) {
+    return (std::isalpha(value[0]) || value[0] == '_') && std::all_of(value.begin(), value.end(), [](char c) {
+        return std::isalnum(c) || std::isalpha(c) || c == '_';
+    });
+}
+
 void Parser::pushVariableStack() {
     this->variables.push({"_"});
 }
 
 void Parser::popVariableStack() {
     this->variables.pop();
-}
-
-static constexpr auto isValidIdentifierChar = [](char c) {
-    return std::isalnum(c) || std::isalpha(c) || c == '_';
-};
-
-static inline bool isValidIdentifier(const std::string& value) {
-    return (std::isalpha(value[0]) || value[0] == '_') && std::all_of(value.begin(), value.end(), isValidIdentifierChar);
 }
 
 ValueType Parser::getValueType(const std::string& value) {

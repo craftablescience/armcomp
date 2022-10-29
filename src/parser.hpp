@@ -51,6 +51,8 @@ private:
         return std::find(this->variables.top().begin(), this->variables.top().end(), varName) != this->variables.top().end();
     }
 
+    [[nodiscard]] static bool isValidIdentifier(const std::string& value);
+
     void pushVariableStack();
     void popVariableStack();
 
