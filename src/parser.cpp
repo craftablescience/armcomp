@@ -157,6 +157,8 @@ std::string Parser::parse() {
         } else if (lines[0] == "let") {
             if (lines.size() < 4 || lines.size() > 4 || lines[2] != "=" || hasVariable(lines[1]))
                 return "Invalid syntax for let call: \"" + line + '\"';
+            if (!isValidIdentifier(lines[1]))
+                return "Variable identifier is invalid: \"" + line + '\"';
             std::string value = lines[3];
             if (!parseValue(value))
                 return "Invalid syntax: \"" + line + '\"';
